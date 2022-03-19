@@ -14,9 +14,11 @@ public class Main extends Application {
 	@Override
 	public void start(Stage primaryStage) {
 		try {
-			FXMLLoader loader = new FXMLLoader(getClass().getResource("/Window2.fxml"));
+			FXMLLoader loader = new FXMLLoader(getClass().getResource("/resources/Window.fxml"));
 			Parent root = loader.load();
 			Window controller = loader.getController();
+			controller.setGame(new Game(controller));
+			controller.setStyle();
 			Scene scene = new Scene(root);
 			primaryStage.setResizable(false);
 			// controller.setStyle();

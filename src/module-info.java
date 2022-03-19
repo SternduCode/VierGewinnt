@@ -5,6 +5,7 @@ module com.sterndu.VierGewinnt {
 	requires transitive javafx.controls;
 	requires transitive javafx.fxml;
 	requires transitive javafx.graphics;
+	requires com.sterndu.MultiCore;
 
 	opens com.sterndu.viergewinnt to javafx.graphics, javafx.fxml;
 }

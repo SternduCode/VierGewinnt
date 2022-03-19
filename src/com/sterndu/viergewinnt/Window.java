@@ -2,9 +2,26 @@ package com.sterndu.viergewinnt;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.TextField;
-import javafx.scene.image.ImageView;
+import javafx.scene.image.*;
+import javafx.scene.input.MouseEvent;
 
 public class Window {
+
+	//image constats;
+	public static final Image IMG_EMPTY, IMG_YELLOW, IMG_RED;
+
+	//initializing image constants;
+	static {
+		IMG_EMPTY = new Image(Window.class.getResourceAsStream("/resources/paint.png"));
+		IMG_YELLOW = new Image(Window.class.getResourceAsStream("/resources/paintYellow.png"));
+		IMG_RED = new Image(Window.class.getResourceAsStream("/resources/paintRed.png"));
+	}
+
+	//handles rules and game state;
+	private Game game;
+
+	// whose turn it is;
+	private boolean red_turn;
 
 	@FXML
 	private TextField textfield;
@@ -18,11 +35,28 @@ public class Window {
 	img50, img51, img52, img53, img54, img55, img56;
 
 	public Window() {
+		red_turn = false;
 	}
 
+	@FXML
+	private void click(MouseEvent event) {
+		if (game == null) {
+			textfield.setText("Etwas ist schief gelaufen!");
+			return;
+		}
+		if (game.isValidMove(((ImageView) event.getSource()).getId())) {
+			((ImageView) event.getSource()).setImage(red_turn ? IMG_RED : IMG_YELLOW);
 
+			red_turn = !red_turn;
+			setStyle();
+		}
+	}
+
+	public Game getGame() { return game; }
 
 	public ImageView getImg00() { return img00; }
+
+
 
 	public ImageView getImg01() { return img01; }
 
@@ -82,8 +116,6 @@ public class Window {
 
 	public ImageView getImg41() { return img41; }
 
-
-
 	public ImageView getImg42() { return img42; }
 
 
@@ -133,6 +165,33 @@ public class Window {
 
 
 	public TextField getTextfield() { return textfield; }
+
+
+
+	public boolean isRed_turn() {
+		return red_turn;
+	}
+
+	public void setGame(Game game) {
+		if (this.game == null)
+			this.game = game;
+	}
+
+	public void setStyle() {
+		if (red_turn) {
+			textfield.setText("Rot ist dran");
+			textfield.setStyle("-fx-highlight-fill: darkred;"
+					+ "-fx-highlight-text-fill: orangered;"
+					+ "-fx-background-color: darkred;"
+					+ "-fx-text-fill: orangered;");
+		} else {
+			textfield.setText("Gelb ist dran");
+			textfield.setStyle("-fx-highlight-fill: goldenrod;"
+					+ "-fx-highlight-text-fill: yellow;"
+					+ "-fx-background-color: goldenrod;"
+					+ "-fx-text-fill: yellow;");
+		}
+	}
 
 	@Override
 	public String toString() {
