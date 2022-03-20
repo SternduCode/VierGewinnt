@@ -163,16 +163,16 @@ public class Window {
 	public void setStyle() {
 		if (red_turn) {
 			textfield.setText("Rot ist dran");
-			textfield.setStyle("-fx-highlight-fill: darkred;"
-					+ "-fx-highlight-text-fill: orangered;"
-					+ "-fx-background-color: darkred;"
-					+ "-fx-text-fill: orangered;");
+			textfield.setStyle("-fx-highlight-fill: #e00000;"
+					+ "-fx-highlight-text-fill: #d3d3d3;"
+					+ "-fx-background-color: #e00000;"
+					+ "-fx-text-fill: #d3d3d3;");
 		} else {
 			textfield.setText("Gelb ist dran");
-			textfield.setStyle("-fx-highlight-fill: goldenrod;"
-					+ "-fx-highlight-text-fill: yellow;"
-					+ "-fx-background-color: goldenrod;"
-					+ "-fx-text-fill: yellow;");
+			textfield.setStyle("-fx-highlight-fill: #fff200;"
+					+ "-fx-highlight-text-fill: #777aaa;"
+					+ "-fx-background-color: #fff200;"
+					+ "-fx-text-fill: #777aaa;");
 		}
 	}
 
