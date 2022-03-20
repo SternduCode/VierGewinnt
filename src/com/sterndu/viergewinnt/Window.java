@@ -46,17 +46,26 @@ public class Window {
 		}
 		if (game.isValidMove(((ImageView) event.getSource()).getId())) {
 			((ImageView) event.getSource()).setImage(red_turn ? IMG_RED : IMG_YELLOW);
-
+			try {
+				game.move(((ImageView) event.getSource()).getId());
+			} catch (InvalidMoveException e) {
+				e.printStackTrace();
+			}
 			red_turn = !red_turn;
 			setStyle();
 		}
 	}
 
+	public void close() {
+		if (game != null)
+			game.close();
+	}
+
 	public Game getGame() { return game; }
 
+
+
 	public ImageView getImg00() { return img00; }
-
-
 
 	public ImageView getImg01() { return img01; }
 
@@ -118,55 +127,29 @@ public class Window {
 
 	public ImageView getImg42() { return img42; }
 
-
-
 	public ImageView getImg43() { return img43; }
-
-
 
 	public ImageView getImg44() { return img44; }
 
-
-
 	public ImageView getImg45() { return img45; }
-
-
 
 	public ImageView getImg46() { return img46; }
 
-
-
 	public ImageView getImg50() { return img50; }
-
-
 
 	public ImageView getImg51() { return img51; }
 
-
-
 	public ImageView getImg52() { return img52; }
-
-
 
 	public ImageView getImg53() { return img53; }
 
-
-
 	public ImageView getImg54() { return img54; }
-
-
 
 	public ImageView getImg55() { return img55; }
 
-
-
 	public ImageView getImg56() { return img56; }
 
-
-
 	public TextField getTextfield() { return textfield; }
-
-
 
 	public boolean isRed_turn() {
 		return red_turn;

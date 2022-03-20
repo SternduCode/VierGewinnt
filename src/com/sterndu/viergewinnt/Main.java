@@ -21,6 +21,9 @@ public class Main extends Application {
 			controller.setStyle();
 			Scene scene = new Scene(root);
 			primaryStage.setResizable(false);
+			primaryStage.setOnCloseRequest(we -> {
+				controller.close();
+			});
 			// controller.setStyle();
 			// controller.getImg().setVisible(true);
 			primaryStage.setTitle("Vier Gewinnt");
