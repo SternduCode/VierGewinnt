@@ -44,15 +44,10 @@ public class Window {
 			textfield.setText("Etwas ist schief gelaufen!");
 			return;
 		}
-		if (game.isValidMove(((ImageView) event.getSource()).getId())) {
-			((ImageView) event.getSource()).setImage(red_turn ? IMG_RED : IMG_YELLOW);
-			try {
-				game.move(((ImageView) event.getSource()).getId());
-			} catch (InvalidMoveException e) {
-				e.printStackTrace();
-			}
-			red_turn = !red_turn;
-			setStyle();
+		try {
+			game.move((ImageView) event.getSource());
+		} catch (InvalidMoveException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -63,9 +58,9 @@ public class Window {
 
 	public Game getGame() { return game; }
 
-
-
 	public ImageView getImg00() { return img00; }
+
+
 
 	public ImageView getImg01() { return img01; }
 
@@ -189,6 +184,11 @@ public class Window {
 				+ img42 + ", img43=" + img43 + ", img44=" + img44 + ", img45=" + img45 + ", img46="
 				+ img46 + ", img50=" + img50 + ", img51=" + img51 + ", img52=" + img52 + ", img53="
 				+ img53 + ", img54=" + img54 + ", img55=" + img55 + ", img56=" + img56 + "]";
+	}
+
+	public void turn() {
+		red_turn = !red_turn;
+		setStyle();
 	}
 
 }
