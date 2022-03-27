@@ -1,7 +1,7 @@
 package com.sterndu.viergewinnt;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.*;
 import javafx.scene.input.MouseEvent;
 
@@ -22,6 +22,11 @@ public class Window {
 
 	// whose turn it is;
 	private boolean red_turn;
+
+	private MainController main;
+
+	@FXML
+	private Button back;
 
 	@FXML
 	private TextField textfield;
@@ -56,11 +61,11 @@ public class Window {
 			game.close();
 	}
 
+	public Button getBack() { return back; }
+
 	public Game getGame() { return game; }
 
 	public ImageView getImg00() { return img00; }
-
-
 
 	public ImageView getImg01() { return img01; }
 
@@ -146,13 +151,19 @@ public class Window {
 
 	public TextField getTextfield() { return textfield; }
 
+	public void init(Game game, MainController main) {
+		if (this.game==null)
+			this.game=game;
+		if (this.main==null)
+			this.main=main;
+	}
+
 	public boolean isRed_turn() {
 		return red_turn;
 	}
 
-	public void setGame(Game game) {
-		if (this.game == null)
-			this.game = game;
+	public void onBack() {
+		main.setMenu();
 	}
 
 	public void setStyle() {

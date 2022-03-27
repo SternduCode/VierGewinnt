@@ -226,5 +226,6 @@
 				<Image url="@paint.png" />
 			</image>
 		</ImageView>
+      <Button fx:id="back" layoutX="14.0" layoutY="2.0" mnemonicParsing="false" onAction="#onBack" text="Zurück" />
 	</children>
 </Pane>

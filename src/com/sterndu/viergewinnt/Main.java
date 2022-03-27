@@ -15,25 +15,22 @@ public class Main extends Application {
 	@Override
 	public void start(Stage primaryStage) {
 		try {
-			FXMLLoader loader = new FXMLLoader(getClass().getResource("/resources/Window.fxml"));
+			FXMLLoader loader = new FXMLLoader(getClass().getResource("/resources/Menu.fxml"));
+			FXMLLoader window_loader = new FXMLLoader(getClass().getResource("/resources/Window.fxml"));
 			Parent root = loader.load();
-			Window controller = loader.getController();
-			controller.setGame(new Game(controller));
-			controller.setStyle();
+			MainController controller = loader.getController();
 			Scene scene = new Scene(root);
 			primaryStage.setResizable(false);
-			primaryStage.setOnCloseRequest(we -> {
-				controller.close();
-			});
-			// controller.setStyle();
-			// controller.getImg().setVisible(true);
 			primaryStage.setTitle("Vier Gewinnt");
 			primaryStage.setScene(scene);
+			controller.init(loader, window_loader, primaryStage);
 			primaryStage.show();
-			System.out.println(controller);
+			if (System.getProperty("debug").equals("true"))
+				System.out.println(controller);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
 	}
+
 
 }
