@@ -9,7 +9,7 @@ import javafx.stage.Stage;
 public class MainController {
 
 	@FXML
-	private Button local, online, ai;
+	private Button local, online, ai, join;
 
 	private FXMLLoader menu_loader, window_loader;
 	private Stage primaryStage;
@@ -21,6 +21,13 @@ public class MainController {
 		if (System.getProperty("debug").equals("true"))
 			System.out.println("Ai");
 		setGame(Mode.AI);
+	}
+	
+	@FXML
+	private void onJoin() {
+	    if (System.getProperty("debug").equals("true"))
+			System.out.println("Join");
+		setGame(Mode.JOIN);
 	}
 
 	@FXML

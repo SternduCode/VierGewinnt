@@ -2,6 +2,7 @@ package com.sterndu.viergewinnt;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.stream.Stream;
 import com.sterndu.multicore.Updater;
 import javafx.scene.image.ImageView;
 
@@ -13,6 +14,7 @@ public class Game {
 	private ScanValue won;
 	private boolean isFalling=false;
 	private Mode mode;
+	private byte moves;
 
 	public Game(Window wind, Mode mode) {
 		this.mode = mode;
@@ -26,6 +28,7 @@ public class Game {
 		Updater u = Updater.getInstance();
 		u.add((Runnable) this::checkWin, "check for win", 100);
 		u.add((Runnable) this::animation, "animation", 100);
+		if (mode == Mode.AI) u.add((Runnable)this::doAiMove, "ai move",100);
 	}
 
 	private void animation() {
@@ -51,6 +54,13 @@ public class Game {
 		if (System.getProperty("debug").equals("true"))
 			System.out.println(won == null ? Arrays.deepToString(state) : won);
 		if (won == null && !isFalling) {
+			String[] s_arr = new String[state.length];
+			for (int i = 0; i < s_arr.length; i++) s_arr[i] = "0000" + i;
+			if (Stream.of(s_arr).map(this::isValidMove).filter(b -> b).count() < 1) {
+				won = new ScanValue('e', (byte) 0, (byte) 0);
+				window.getTextfield().setText("Unentschieden!");
+				return;
+			}
 			ScanValue[] scans = new ScanValue[state.length + (state.length + state[0].length - 7) * 2];
 			for (int i = 0; i < state.length; i++) {
 				char[] column = state[i];
@@ -118,6 +128,22 @@ public class Game {
 		}
 	}
 
+	private void doAiMove() {
+		if (won == null && !isFalling) try {
+
+			moves++;
+			byte x = 0;
+			state[x][0] = window.isRed_turn() ? 'r' : 'y';
+			ImageView field = (ImageView) window.getClass().getMethod("getImg0" + x).invoke(window);
+			field.setImage(window.isRed_turn() ? Window.IMG_RED : Window.IMG_YELLOW);
+			window.turn();
+			isFalling = true;
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException
+				| SecurityException e) {
+			e.printStackTrace();
+		}
+	}
+
 	private List<Pos> gaps() {
 		List<Pos> li = new ArrayList<>();
 		if (isFalling) {
@@ -148,6 +174,13 @@ public class Game {
 		u.remove("animation");
 	}
 
+	public List<Pos> getPossibleMoves() {
+		List<Pos> li = new ArrayList<>();
+		for (int i = 0; i < state.length; i++)
+			if (isValidMove("0000" + i)) li.add(new Pos((byte) i, (byte) (maxvals[i] + 1)));
+		return li;
+	}
+
 	public boolean isValidMove(String field) {
 		if (System.getProperty("debug").equals("true"))
 			System.out.println(Integer.parseInt(field.substring(4)));
@@ -159,15 +192,19 @@ public class Game {
 			System.out.println(gaps().size() + " " + isFalling);
 		if (gaps().size() == 0 && isValidMove(field.getId()) && won == null)
 			if (mode == Mode.LOCAL || mode == Mode.AI && !window.isRed_turn()) {
+				System.out.println(getPossibleMoves());
 				byte x = Byte.parseByte(field.getId().substring(4));
 				state[x][0] = window.isRed_turn() ? 'r' : 'y';
 				field.setImage(window.isRed_turn() ? Window.IMG_RED : Window.IMG_YELLOW);
 				window.turn();
+				moves++;
 				isFalling = true;
 			} else if (mode == Mode.ONLINE) {
 
 			} else if (mode == Mode.AI) {
 
+			} else if (mode == Mode.JOIN) {
+			
 			}
 	}
 
@@ -175,6 +212,7 @@ public class Game {
 		window.turn();
 		window.turn();
 		won = null;
+		moves = 0;
 		this.mode = mode;
 		if (window.isRed_turn()) window.turn();
 		for (int i = 0; i < maxvals.length; i++) maxvals[i] = 4;
