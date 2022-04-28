@@ -10,11 +10,11 @@ public class Game {
 
 	private final Window window;
 	private final char[][] state;
+	//max depth to check for falling
 	private final byte[] maxvals;
 	private ScanValue won;
 	private boolean isFalling=false;
 	private Mode mode;
-	private byte moves;
 
 	public Game(Window wind, Mode mode) {
 		this.mode = mode;
@@ -33,15 +33,22 @@ public class Game {
 
 	private void animation() {
 		List<Pos> gaps;
+		//find gaps and execute if found
 		if ((gaps=gaps()).size()>0)
 			for (Pos pos: gaps) try {
+				//copy old to new location
 				state[pos.x()][pos.y() + 1] = state[pos.x()][pos.y()];
+				//remove old value
 				state[pos.x()][pos.y()] = 'e';
+				//get old img position
 				ImageView imgViewFrom = (ImageView) window.getClass().getMethod("getImg" + pos.y() + pos.x())
 						.invoke(window);
+				//get new position
 				ImageView imgViewTo = (ImageView) window.getClass()
 						.getMethod("getImg" + (pos.y() + 1) + pos.x()).invoke(window);
+				//copy img from old to new position
 				imgViewTo.setImage(imgViewFrom.getImage());
+				//set img on old position to empty
 				imgViewFrom.setImage(Window.IMG_EMPTY);
 			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
 					| NoSuchMethodException | SecurityException e) {
@@ -50,6 +57,7 @@ public class Game {
 	}
 
 	private void checkWin() {
+		//check if won
 		boolean isWon = won != null;
 		if (System.getProperty("debug").equals("true"))
 			System.out.println(won == null ? Arrays.deepToString(state) : won);
