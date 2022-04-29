@@ -57,6 +57,7 @@ public class Window {
 	}
 
 	public void close() {
+		System.out.println("Win clo" + game);
 		if (game != null)
 			game.close();
 	}

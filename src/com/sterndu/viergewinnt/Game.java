@@ -15,6 +15,7 @@ public class Game {
 	private ScanValue won;
 	private boolean isFalling=false;
 	private Mode mode;
+	private int moves = 0;
 
 	public Game(Window wind, Mode mode) {
 		this.mode = mode;
@@ -61,31 +62,35 @@ public class Game {
 		boolean isWon = won != null;
 		if (System.getProperty("debug").equals("true"))
 			System.out.println(won == null ? Arrays.deepToString(state) : won);
+		// only execute if not yet won and no animation is in progress
 		if (won == null && !isFalling) {
 			String[] s_arr = new String[state.length];
-			for (int i = 0; i < s_arr.length; i++) s_arr[i] = "0000" + i;
+			for (int i = 0; i < s_arr.length; i++) s_arr[i] = "0000" + i;// 0000 = placeholder for function isValidMove
+			// map to boolean -> filter all false's out -> count all true's
 			if (Stream.of(s_arr).map(this::isValidMove).filter(b -> b).count() < 1) {
-				won = new ScanValue('e', (byte) 0, (byte) 0);
+				won = new ScanValue('e', (byte) 0, (byte) 0); // theres no winner
 				window.getTextfield().setText("Unentschieden!");
 				return;
 			}
+			// create an array able to contain all horizontal lines and all diagonal lines
 			ScanValue[] scans = new ScanValue[state.length + (state.length + state[0].length - 7) * 2];
 			for (int i = 0; i < state.length; i++) {
 				char[] column = state[i];
+				int dlines = state.length + column.length - 7; // calculate diagonal lines
 				for (int j = 0; j < column.length; j++) {
-					int dlines = state.length + column.length - 7;
-					int d1LocalIdx = i + j - 3;
-					int d2LocalIdx = state.length - i + j - 4;
+					int d1LocalIdx = i + j - 3; // first diagonal index
+					int d2LocalIdx = state.length - i + j - 4;// second diagonal index
 					int horizontal_idx = j + 1;
+					// very important to get if an index is out of bounds
 					int diagonal1_idx = d1LocalIdx < 0 || d1LocalIdx >= dlines ? -1 : column.length + 1 + d1LocalIdx;
 					int diagonal2_idx = d2LocalIdx < 0 || d2LocalIdx >= dlines ? -1
 							: column.length + dlines + 1 + d2LocalIdx;
-					if (column[j] != 'e') {
-						if (scans[0] != null) {
-							if (scans[0].getColor() == column[j])
+					if (column[j] != 'e') {// check if not empty
+						if (scans[0] != null) {// if we are in a scan line
+							if (scans[0].getColor() == column[j])// if scan line is of same color e.g. Red or Yellow
 								scans[0].appendPosition((byte) i, (byte) j);
 							else {
-								if (scans[0].getLength() >= 4) break;
+								if (scans[0].getLength() >= 4) break;// if the scan line is of length 4 or more
 								scans[0].setColor(column[j], (byte) i, (byte) j);
 							}
 						} else scans[0] = new ScanValue(column[j], (byte) i, (byte) j);
@@ -114,7 +119,7 @@ public class Game {
 							}
 						} else scans[diagonal2_idx] = new ScanValue(column[j], (byte) i, (byte) j);
 					} else {
-						if (scans[0] != null) scans[0] = null;
+						if (scans[0] != null) scans[0] = null;// reset scan lines
 						if (scans[horizontal_idx] != null) scans[horizontal_idx] = null;
 						if (diagonal1_idx != -1) if (scans[diagonal1_idx] != null) scans[diagonal1_idx] = null;
 						if (diagonal2_idx != -1) if (scans[diagonal2_idx] != null) scans[diagonal2_idx] = null;
@@ -122,16 +127,16 @@ public class Game {
 				}
 				if (System.getProperty("debug").equals("true"))
 					System.out.println(i + " : " + Arrays.toString(scans));
-				try {
+				try {// check for the first scan line of 4 or more
 					for (ScanValue sv: scans) if (sv != null) if (sv.getLength() >= 4 && won == null) won = sv;
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				scans[0]=null;
+				scans[0] = null;// save the memory!!!! (to prevent an issue of roll over)
 			}
 		}
 		if (won != null != isWon && !isWon) {
-			window.turn();
+			window.turn();// print that someone won
 			window.getTextfield().setText(won.getColor() == 'y' ? "Gelb hat Gewonnen!" : "Rot hat Gewonnen!");
 		}
 	}
@@ -177,9 +182,11 @@ public class Game {
 	}
 
 	public void close() {
+		System.out.println("rem");
 		Updater u = Updater.getInstance();
 		u.remove("check for win");
 		u.remove("animation");
+		u.remove("ai move");
 	}
 
 	public List<Pos> getPossibleMoves() {
@@ -192,7 +199,7 @@ public class Game {
 	public boolean isValidMove(String field) {
 		if (System.getProperty("debug").equals("true"))
 			System.out.println(Integer.parseInt(field.substring(4)));
-		return state[Integer.parseInt(field.substring(4))][0] == 'e';
+		return state[Integer.parseInt(field.substring(4))][0] == 'e';// checks if top row field is empty
 	}
 
 	public void move(ImageView field) throws InvalidMoveException {
@@ -212,7 +219,7 @@ public class Game {
 			} else if (mode == Mode.AI) {
 
 			} else if (mode == Mode.JOIN) {
-			
+
 			}
 	}
 
