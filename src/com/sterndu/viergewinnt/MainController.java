@@ -2,8 +2,9 @@ package com.sterndu.viergewinnt;
 
 import java.io.IOException;
 import javafx.fxml.*;
-import javafx.scene.*;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
 public class MainController {
@@ -22,10 +23,10 @@ public class MainController {
 			System.out.println("Ai");
 		setGame(Mode.AI);
 	}
-	
+
 	@FXML
 	private void onJoin() {
-	    if (System.getProperty("debug").equals("true"))
+		if (System.getProperty("debug").equals("true"))
 			System.out.println("Join");
 		setGame(Mode.JOIN);
 	}
@@ -45,7 +46,7 @@ public class MainController {
 	}
 
 	private void setGame(Mode mode) {
-		game.reset(mode);
+		game.reset(mode, true);
 		primaryStage.setScene(gameScene);
 	}
 
@@ -60,8 +61,9 @@ public class MainController {
 		if (me == null)
 			me = primaryStage.getScene();
 		try {
-			Parent root = window_loader.load();
+			Pane root = window_loader.load();
 			Window controller = window_loader.getController();
+			root.getChildren().add(controller.getLine());
 			gameScene = new Scene(root);
 			controller.init(game = new Game(controller, Mode.LOCAL), this);
 			controller.setStyle();

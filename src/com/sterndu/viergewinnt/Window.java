@@ -3,7 +3,9 @@ package com.sterndu.viergewinnt;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.*;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.input.*;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
 
 public class Window {
 
@@ -28,11 +30,19 @@ public class Window {
 	@FXML
 	private Button back;
 
+	private final Line line;
+
 	@FXML
 	private TextField textfield;
+
 	@FXML
-	private ImageView
-	img00, img01, img02, img03, img04, img05, img06,
+	private TextField joinInput;
+
+	@FXML
+	private TextArea addressField;
+
+	@FXML
+	private ImageView img00, img01, img02, img03, img04, img05, img06,
 	img10, img11, img12, img13, img14, img15, img16,
 	img20, img21, img22, img23, img24, img25, img26,
 	img30, img31, img32, img33, img34, img35, img36,
@@ -41,6 +51,10 @@ public class Window {
 
 	public Window() {
 		red_turn = false;
+		line = new Line(0, 0, 0, 0);
+		line.setStrokeWidth(4);
+		line.setStroke(Color.color(.3, .3, .3, .8));
+		line.setVisible(false);
 	}
 
 	@FXML
@@ -50,17 +64,38 @@ public class Window {
 			return;
 		}
 		try {
-			game.move((ImageView) event.getSource());
+			game.move(Byte.parseByte(((ImageView) event.getSource()).getId().substring(4)));
 		} catch (InvalidMoveException e) {
 			e.printStackTrace();
 		}
 	}
 
+	@FXML
+	private void type(KeyEvent event) {
+		if (event.getCode().isDigitKey()) {
+			int v = Character.digit(event.getText().charAt(0), 10);
+			if (v > 0 && v < 8) {
+				if (game == null) {
+					textfield.setText("Etwas ist schief gelaufen!");
+					return;
+				}
+				try {
+					game.move((byte) (v - 1));
+				} catch (InvalidMoveException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 	public void close() {
-		System.out.println("Win clo" + game);
+		if (System.getProperty("debug").equals("true"))
+			System.out.println("Win close " + game);
 		if (game != null)
 			game.close();
 	}
+
+	public TextArea getAddressField() { return addressField; }
 
 	public Button getBack() { return back; }
 
@@ -150,6 +185,10 @@ public class Window {
 
 	public ImageView getImg56() { return img56; }
 
+	public TextField getJoinInput() { return joinInput; }
+
+	public Line getLine() { return line; }
+
 	public TextField getTextfield() { return textfield; }
 
 	public void init(Game game, MainController main) {
@@ -163,23 +202,34 @@ public class Window {
 		return red_turn;
 	}
 
+	public void newRound() {
+		if (game != null) game.reset(game.getMode(), true);
+	}
+
 	public void onBack() {
+		game.close();
+		addressField.setVisible(false);
+		joinInput.setVisible(false);
 		main.setMenu();
 	}
 
 	public void setStyle() {
-		if (red_turn) {
-			textfield.setText("Rot ist dran");
-			textfield.setStyle("-fx-highlight-fill: #e00000;"
-					+ "-fx-highlight-text-fill: #d3d3d3;"
-					+ "-fx-background-color: #e00000;"
-					+ "-fx-text-fill: #d3d3d3;");
-		} else {
-			textfield.setText("Gelb ist dran");
-			textfield.setStyle("-fx-highlight-fill: #fff200;"
-					+ "-fx-highlight-text-fill: #777aaa;"
-					+ "-fx-background-color: #fff200;"
-					+ "-fx-text-fill: #777aaa;");
+		try {
+			if (red_turn) {
+				textfield.setText("Rot ist dran");
+				textfield.setStyle("-fx-highlight-fill: #e00000;"
+						+ "-fx-highlight-text-fill: #d3d3d3;"
+						+ "-fx-background-color: #e00000;"
+						+ "-fx-text-fill: #d3d3d3;");
+			} else {
+				textfield.setText("Gelb ist dran");
+				textfield.setStyle("-fx-highlight-fill: #fff200;"
+						+ "-fx-highlight-text-fill: #777aaa;"
+						+ "-fx-background-color: #fff200;"
+						+ "-fx-text-fill: #777aaa;");
+			}
+		} catch (NullPointerException e) {
+
 		}
 	}
 

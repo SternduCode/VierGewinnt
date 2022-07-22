@@ -1,12 +1,19 @@
 package com.sterndu.viergewinnt;
 
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
+import java.net.*;
 import java.util.*;
 import java.util.stream.Stream;
-import com.sterndu.multicore.Updater;
+import com.sterndu.multicore.*;
+import com.sterndu.multicore.MultiCore.TaskHandler;
+import com.sterndu.util.interfaces.ThrowingConsumer;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 
 public class Game {
+
+	// TODO new round; mp playable
 
 	private final Window window;
 	private final char[][] state;
@@ -15,7 +22,9 @@ public class Game {
 	private ScanValue won;
 	private boolean isFalling=false;
 	private Mode mode;
-	private int moves = 0;
+	private com.sterndu.data.transfer.secure.Socket sock;
+	private List<String> addresses;
+	private TaskHandler serverTaskHandler;
 
 	public Game(Window wind, Mode mode) {
 		this.mode = mode;
@@ -26,10 +35,6 @@ public class Game {
 			for (int j = 0; j < state[i].length; j++)
 				state[i][j] = 'e';
 		window = wind;
-		Updater u = Updater.getInstance();
-		u.add((Runnable) this::checkWin, "check for win", 100);
-		u.add((Runnable) this::animation, "animation", 100);
-		if (mode == Mode.AI) u.add((Runnable)this::doAiMove, "ai move",100);
 	}
 
 	private void animation() {
@@ -55,6 +60,10 @@ public class Game {
 					| NoSuchMethodException | SecurityException e) {
 				e.printStackTrace();
 			}
+		else {
+			isFalling = false;
+			checkWin();
+		}
 	}
 
 	private void checkWin() {
@@ -64,10 +73,10 @@ public class Game {
 			System.out.println(won == null ? Arrays.deepToString(state) : won);
 		// only execute if not yet won and no animation is in progress
 		if (won == null && !isFalling) {
-			String[] s_arr = new String[state.length];
-			for (int i = 0; i < s_arr.length; i++) s_arr[i] = "0000" + i;// 0000 = placeholder for function isValidMove
+			Byte[] s_arr = new Byte[state.length];
+			for (byte i = 0; i < s_arr.length; i++) s_arr[i] = i;
 			// map to boolean -> filter all false's out -> count all true's
-			if (Stream.of(s_arr).map(this::isValidMove).filter(b -> b).count() < 1) {
+			if (Stream.of(s_arr).map(this::isValidMove).filter(b -> b).count() < 1) { // checks if all columns are full
 				won = new ScanValue('e', (byte) 0, (byte) 0); // theres no winner
 				window.getTextfield().setText("Unentschieden!");
 				return;
@@ -132,19 +141,36 @@ public class Game {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				scans[0] = null;// save the memory!!!! (to prevent an issue of roll over)
+				scans[0] = null;// erase the memory!!!! (to prevent an issue of roll over)
 			}
 		}
 		if (won != null != isWon && !isWon) {
-			window.turn();// print that someone won
+			if (window.isRed_turn() != (won.getColor() == 'r') || window.isRed_turn() == (won.getColor() == 'y'))
+				window.turn();
+			// print that someone won
 			window.getTextfield().setText(won.getColor() == 'y' ? "Gelb hat Gewonnen!" : "Rot hat Gewonnen!");
+			try {
+				ImageView startField = (ImageView) window.getClass()
+						.getMethod("getImg" + won.getPositions().get(0).y() + won.getPositions().get(0).x())
+						.invoke(window);
+				ImageView endField = (ImageView) window.getClass()
+						.getMethod("getImg" + won.getPositions().get(3).y() + won.getPositions().get(3).x())
+						.invoke(window);
+				window.getLine().setStartX(startField.getLayoutX() + startField.getFitWidth() / 2);
+				window.getLine().setStartY(startField.getLayoutY() + startField.getFitHeight() / 2);
+				window.getLine().setEndX(endField.getLayoutX() + endField.getFitWidth() / 2);
+				window.getLine().setEndY(endField.getLayoutY() + endField.getFitHeight() / 2);
+				window.getLine().setVisible(true);
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+					| NoSuchMethodException | SecurityException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
 	private void doAiMove() {
 		if (won == null && !isFalling) try {
 
-			moves++;
 			byte x = 0;
 			state[x][0] = window.isRed_turn() ? 'r' : 'y';
 			ImageView field = (ImageView) window.getClass().getMethod("getImg0" + x).invoke(window);
@@ -159,76 +185,155 @@ public class Game {
 
 	private List<Pos> gaps() {
 		List<Pos> li = new ArrayList<>();
-		if (isFalling) {
-			for (int i = 0; i < state.length; i++) {
-				char[] column = state[i];
-				// System.out.println(Arrays.toString(column));
-				boolean empty = column[maxvals[i] + 1] == 'e';
-				// System.out.println("idx:" + i + " maxv:" + maxvals[i] + " empty:" + empty);
-				for (int j = maxvals[i]; j >= 0; j--) if (empty) {
-					empty = true;
-					if (column[j] != 'e')
-						li.add(new Pos((byte) i, (byte) j));
-				} else {
-					if (j == maxvals[i]) maxvals[i]--;
-					empty = column[j] == 'e';
-				}
+		if (isFalling) for (int i = 0; i < state.length; i++) {
+			char[] column = state[i];
+			// System.out.println(Arrays.toString(column));
+			boolean empty = column[maxvals[i] + 1] == 'e';
+			// System.out.println("idx:" + i + " maxv:" + maxvals[i] + " empty:" + empty);
+			for (int j = maxvals[i]; j >= 0; j--) if (empty) {
+				empty = true;
+				if (column[j] != 'e')
+					li.add(new Pos((byte) i, (byte) j));
+			} else {
+				if (j == maxvals[i]) maxvals[i]--;
+				empty = column[j] == 'e';
 			}
-			if (li.size() == 0)
-				isFalling = false;
 		}
 		return li;
 
 	}
 
+	private void handleRecievedMove(byte type, byte[] data) {
+		if (data.length > 0) {
+			byte x = data[0];
+			System.out.println(x + " " + sock.isHost() + " " + window.isRed_turn());
+			if (sock.isHost() ? window.isRed_turn() : !window.isRed_turn()) try {
+				ImageView field = (ImageView) window.getClass().getMethod("getImg0" + x).invoke(window);
+				state[x][0] = window.isRed_turn() ? 'r' : 'y';
+				field.setImage(window.isRed_turn() ? Window.IMG_RED : Window.IMG_YELLOW);
+				isFalling = true;
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+					| NoSuchMethodException | SecurityException e) {
+				e.printStackTrace();
+				new InvalidMoveException(x + "|0").printStackTrace();
+			}
+		}
+	}
+
+	private void handleRecievedReset(byte type, byte[] data) {
+		System.out.println(type);
+		reset(mode, false);
+	}
+
+	private void handleRecievedTurn(byte type, byte[] data) {
+		window.turn();
+	}
+
 	public void close() {
-		System.out.println("rem");
+		if (System.getProperty("debug").equals("true"))
+			System.out.println("rem");
 		Updater u = Updater.getInstance();
-		u.remove("check for win");
 		u.remove("animation");
 		u.remove("ai move");
+		if (serverTaskHandler != null) {
+			MultiCore.removeTaskHandler(serverTaskHandler);
+			serverTaskHandler = null;
+		}
+		try {
+			if (sock != null) {
+				if (!sock.isClosed()) {
+					sock.sendClose();
+					sock.close();
+				}
+				sock = null;
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public Mode getMode() {
+		return mode;
 	}
 
 	public List<Pos> getPossibleMoves() {
 		List<Pos> li = new ArrayList<>();
-		for (int i = 0; i < state.length; i++)
-			if (isValidMove("0000" + i)) li.add(new Pos((byte) i, (byte) (maxvals[i] + 1)));
+		for (byte i = 0; i < state.length; i++)
+			if (isValidMove(i)) li.add(new Pos(i, (byte) (maxvals[i] + 1)));
 		return li;
 	}
 
-	public boolean isValidMove(String field) {
+	public boolean isValidMove(byte x) {
 		if (System.getProperty("debug").equals("true"))
-			System.out.println(Integer.parseInt(field.substring(4)));
-		return state[Integer.parseInt(field.substring(4))][0] == 'e';// checks if top row field is empty
+			System.out.println(x);
+		return state[x][0] == 'e';// checks if top row field is empty
 	}
 
-	public void move(ImageView field) throws InvalidMoveException {
+	public void move(byte x) throws InvalidMoveException {
+		System.out.println(x);
 		if (System.getProperty("debug").equals("true"))
 			System.out.println(gaps().size() + " " + isFalling);
-		if (gaps().size() == 0 && isValidMove(field.getId()) && won == null)
-			if (mode == Mode.LOCAL || mode == Mode.AI && !window.isRed_turn()) {
-				System.out.println(getPossibleMoves());
-				byte x = Byte.parseByte(field.getId().substring(4));
-				state[x][0] = window.isRed_turn() ? 'r' : 'y';
-				field.setImage(window.isRed_turn() ? Window.IMG_RED : Window.IMG_YELLOW);
+		if (gaps().size() == 0 && isValidMove(x) && won == null)
+			if (getMode() == Mode.LOCAL || getMode() == Mode.AI && !window.isRed_turn()) {
+				if (System.getProperty("debug").equals("true"))
+					System.out.println(getPossibleMoves());
+				try {
+					ImageView field = (ImageView) window.getClass().getMethod("getImg0" + x).invoke(window);
+					state[x][0] = window.isRed_turn() ? 'r' : 'y';
+					field.setImage(window.isRed_turn() ? Window.IMG_RED : Window.IMG_YELLOW);
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+						| NoSuchMethodException | SecurityException e) {
+					e.printStackTrace();
+					throw new InvalidMoveException(x + "|0");
+				}
 				window.turn();
-				moves++;
 				isFalling = true;
-			} else if (mode == Mode.ONLINE) {
+			} else if (getMode() == Mode.ONLINE && sock != null && sock.isConnected() && !sock.isClosed()) {
+				if (!window.isRed_turn()) try {
+					ImageView field = (ImageView) window.getClass().getMethod("getImg0" + x).invoke(window);
+					sock.sendData((byte) 2, new byte[] {x});
+					state[x][0] = 'y';
+					field.setImage(Window.IMG_YELLOW);
+					sock.sendData((byte) 1, new byte[0]);
+					window.turn();
+					isFalling = true;
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+						| NoSuchMethodException | SecurityException | SocketException e) {
+					e.printStackTrace();
+					throw new InvalidMoveException(x + "|0");
+				}
+			} else if (getMode() == Mode.AI) {
 
-			} else if (mode == Mode.AI) {
-
-			} else if (mode == Mode.JOIN) {
-
-			}
+			} else if (getMode() == Mode.JOIN && sock != null && sock.isConnected() && !sock.isClosed()
+					&& window.isRed_turn())
+				try {
+					ImageView field = (ImageView) window.getClass().getMethod("getImg0" + x).invoke(window);
+					sock.sendData((byte) 2, new byte[] {x});
+					state[x][0] = 'r';
+					field.setImage(Window.IMG_RED);
+					window.turn();
+					sock.sendData((byte) 1, new byte[0]);
+					isFalling = true;
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+						| NoSuchMethodException | SecurityException | SocketException e) {
+					e.printStackTrace();
+					throw new InvalidMoveException(x + "|0");
+				}
 	}
 
-	public void reset(Mode mode) {
+	public void reset(Mode mode, boolean send) {
+		if (sock != null && sock.isConnected() && !sock.isClosed() && send) try {
+			sock.sendData((byte) 3, new byte[0]);
+		} catch (SocketException e1) {
+			e1.printStackTrace();
+		}
+		window.getLine().setVisible(false);
 		window.turn();
 		window.turn();
 		won = null;
-		moves = 0;
 		this.mode = mode;
+		Updater u = Updater.getInstance();
+		u.add((Runnable) this::animation, "animation", 100);
 		if (window.isRed_turn()) window.turn();
 		for (int i = 0; i < maxvals.length; i++) maxvals[i] = 4;
 		for (int i = 0; i < state.length; i++)
@@ -243,6 +348,125 @@ public class Game {
 					e.printStackTrace();
 				}
 			}
+		if (mode == Mode.ONLINE) {
+			addresses = new ArrayList<>();
+			try {
+				addresses.add(InetAddress.getLocalHost().getHostAddress());
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+			}
+			try {
+				final URL whatismyip = new URL("https://ipv4.wtfismyip.com/text");
+				final BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));
+				addresses.add(in.readLine());
+			} catch (final ConnectException e) {
+				try {
+					final URL whatismyip1 = new URL("https://ipv4.myip.addr.space/ip");
+					final BufferedReader in1 = new BufferedReader(new InputStreamReader(whatismyip1.openStream()));
+					addresses.add(in1.readLine());
+				} catch (final IOException e3) {
+					e3.printStackTrace();
+				}
+			} catch (final IOException e2) {
+				e2.printStackTrace();
+			}
+			try {
+				final URL whatismyip6 = new URL("https://ipv6.wtfismyip.com/text");
+				final BufferedReader in6 = new BufferedReader(new InputStreamReader(whatismyip6.openStream()));
+				addresses.add(in6.readLine());
+			} catch (final Exception e) {
+				try {
+					final URL whatismyip61 = new URL("https://ipv6.myip.addr.space/ip");
+					final BufferedReader in61 = new BufferedReader(new InputStreamReader(whatismyip61.openStream()));
+					addresses.add(in61.readLine());
+				} catch (final Exception e3) {
+					e3.printStackTrace();
+				}
+			}
+			Game theGame = this;
+			MultiCore.addTaskHandler(serverTaskHandler = new TaskHandler(1000) {
+
+				private boolean isInTask = false;
+
+				private void setPortaAddress(int port) {
+					StringBuilder sb = new StringBuilder();
+					for (String address: addresses) sb.append(address + ":" + port + "\n");
+					window.getAddressField().setText(sb.toString().substring(0, sb.length() - 1));
+				}
+
+				@Override
+				protected ThrowingConsumer<TaskHandler> getTask() {
+					if (isInTask || sock != null && !sock.isClosed() && sock.isConnected()) return th -> {};
+					else {
+						isInTask = true;
+						return th -> {
+							try (com.sterndu.data.transfer.secure.ServerSocket server = new com.sterndu.data.transfer.secure.ServerSocket(
+									0)) {
+								setPortaAddress(server.getLocalPort());
+								window.getAddressField().setVisible(true);
+								com.sterndu.data.transfer.secure.Socket s = server.accept();
+								sock = s;
+								sock.setHandle((byte) 1, theGame::handleRecievedTurn);
+								sock.setHandle((byte) 2, theGame::handleRecievedMove);
+								sock.setHandle((byte) 3, theGame::handleRecievedReset);
+								System.out.println(sock.isConnected());
+								if (sock.isConnected()) window.getAddressField().setVisible(false);
+								isInTask = false;
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+						};
+					}
+				}
+
+				@Override
+				protected boolean hasTask() {
+					return (sock == null || sock != null && (!sock.isConnected() || sock.isClosed())) && !isInTask;
+				}
+			});
+		} else if (mode == Mode.JOIN) {
+			if (sock == null || !sock.isConnected() || sock.isClosed()) {
+				window.getJoinInput().setVisible(true);
+				window.getJoinInput().setOnKeyReleased(ke -> {
+					if (ke.getCode() == KeyCode.ENTER) {
+						String text = window.getJoinInput().getText();
+						if (text.contains(":")) {
+							int lcolon = text.lastIndexOf(':');
+							String port = text.substring(lcolon + 1);
+							String addr = text.substring(0, lcolon);
+							try {
+								int i_port = Integer.parseInt(port);
+								if (i_port <=65535&&i_port >=0) {
+									InetSocketAddress address=new InetSocketAddress(addr, i_port);
+									System.out.println(address + " " + !address.isUnresolved());
+									if (!address.isUnresolved()) try {
+										sock = new com.sterndu.data.transfer.secure.Socket(addr, i_port);
+										sock.setShutdownHook(s -> {
+											window.getJoinInput().setVisible(true);
+										});
+										sock.setHandle((byte) 1, this::handleRecievedTurn);
+										sock.setHandle((byte) 2, this::handleRecievedMove);
+										sock.setHandle((byte) 3, this::handleRecievedReset);
+										window.getJoinInput().setVisible(false);
+										window.getJoinInput().setText("");
+										System.out.println(sock);
+									} catch (IOException e) {
+										window.getJoinInput().setText("Can't connect to: "+text);
+									}
+								} else window.getJoinInput().setText(port + " is out of range! [0...65535] " + text);
+							} catch (NumberFormatException e) {
+								window.getJoinInput().setText(port + " is not a valid port! " + text);
+							}
+							// TODO
+						} else window.getJoinInput().setText("Wasn't able to find a port in address: " + text);
+					}
+				});
+			}
+		} else if (mode == Mode.AI) {
+			u.add((Runnable) this::doAiMove, "ai move", 100);
+			// TODO
+			this.mode = mode;
+		}
 	}
 
 }
